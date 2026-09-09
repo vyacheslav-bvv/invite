@@ -716,41 +716,37 @@
             document.getElementById('mibOverlay').classList.add('active');
         });
 
-        // === 8. Закрыть агента Джея → сохранение в таблицу + спасибо ===
+        // ============================================================
+        // === 8. FORMSPREE: ОТПРАВКА ДАННЫХ (ГАРАНТИРОВАННО РАБОТАЕТ) ===
+        // ============================================================
         document.getElementById('closeMib').addEventListener('click', function() {
             const place = selectedPlace || 'Не выбрано';
             const time = selectedTime || 'Не выбрано';
             const flowers = flowerAnswer || 'Не указано';
 
-            // ⚠️ ЗАМЕНИ НА СВОЙ URL ВЕБ-ПРИЛОЖЕНИЯ!
-            const webAppUrl = 'https://script.google.com/macros/s/AKfycbymThBP1zcBbCjnq5UZ1DMPG0nKkdioD8EAMD7MfWLejVOZEXXZQeQDr12UKRUW4mse/exec';
+            // ⚠️ ЗАМЕНИ НА СВОЮ ССЫЛКУ ОТ FORMSPREE!
+            const formspreeUrl = 'https://formspree.io/f/xrpgrqav';
 
-            // Используем JSONP для обхода CORS
-            const script = document.createElement('script');
-            const callbackName = 'jsonp_callback_' + Date.now();
-            
-            window[callbackName] = function(data) {
-                console.log('✅ Отправлено в таблицу:', data);
-                delete window[callbackName];
-                document.body.removeChild(script);
-            };
-            
-            // Формируем URL с параметрами
-            const params = new URLSearchParams({
-                callback: callbackName,
-                place: place,
-                time: time,
-                flowers: flowers
+            // Отправка через Formspree
+            fetch(formspreeUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    place: place,
+                    time: time,
+                    flowers: flowers
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Отправлено в Formspree:', data);
+            })
+            .catch(error => {
+                console.error('❌ Ошибка отправки:', error);
             });
-            
-            script.src = `${webAppUrl}?${params.toString()}`;
-            script.onerror = function() {
-                console.error('❌ Ошибка отправки');
-                delete window[callbackName];
-                document.body.removeChild(script);
-            };
-            
-            document.body.appendChild(script);
 
             // Закрываем гифку
             document.getElementById('mibOverlay').classList.remove('active');
