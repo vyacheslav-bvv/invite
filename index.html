@@ -55,6 +55,8 @@
             width: 100%;
             border: 2px solid rgba(255, 255, 255, 0.6);
             transition: 0.3s;
+            overflow: hidden; /* чтобы «Нет» не вылезала за карточку */
+            min-height: 320px;
         }
         .container h1 {
             font-size: 2.2em; color: #d6336c; margin-bottom: 12px;
@@ -65,18 +67,23 @@
 
         .buttons {
             display: flex; justify-content: center; gap: 30px;
-            flex-wrap: wrap; align-items: center; min-height: 80px; position: relative;
+            flex-wrap: wrap; align-items: center; min-height: 80px;
+            position: relative; z-index: 5;
         }
         .btn {
             padding: 16px 48px; font-size: 1.5em; font-weight: bold;
             border: none; border-radius: 50px; cursor: pointer;
             transition: all 0.2s ease; box-shadow: 0 8px 20px rgba(0,0,0,0.1); position: relative;
         }
-        .btn-yes { background: linear-gradient(45deg, #ff6b8a, #ee3b6b); color: white; }
+        .btn-yes {
+            background: linear-gradient(45deg, #ff6b8a, #ee3b6b); color: white;
+            position: relative; z-index: 2;
+        }
         .btn-yes:hover { transform: scale(1.08); box-shadow: 0 12px 30px rgba(238,59,107,0.4); }
         .btn-no {
             background: #e0e0e0; color: #666; transition: all 0.1s ease;
             font-size: 1.2em; padding: 16px 32px;
+            z-index: 1;
         }
         .btn-no:hover { background: #d0d0d0; }
 
@@ -313,7 +320,7 @@
             <h2>рассказывай свои секреты..</h2>
             <p>ну и чем же я могу тебя порадовать?</p>
             <input type="text" id="flowerInput" placeholder="я люблю..." maxlength="60" />
-<button class="final-btn" id="submitFlowers">Отправить 🍬🍫</button>
+            <button class="final-btn" id="submitFlowers">Отправить 🍬🍫</button>
         </div>
     </div>
 
@@ -364,15 +371,40 @@
         function moveNoButton() {
             const container = document.getElementById('mainContainer');
             const rect = container.getBoundingClientRect();
+
+            // Сброс, чтобы измерить реальный размер
+            btnNo.style.position = 'absolute';
+            btnNo.style.left = '0px';
+            btnNo.style.top = '0px';
+            btnNo.style.transform = 'none';
+
             const btnRect = btnNo.getBoundingClientRect();
-            const containerWidth = rect.width - btnRect.width - 20;
-            const containerHeight = rect.height - btnRect.height - 20;
-            if (containerWidth <= 0 || containerHeight <= 0) return;
-            const x = Math.random() * containerWidth;
-            const y = Math.random() * containerHeight;
-            btnNo.style.position = 'relative';
+            const yesRect = btnYes.getBoundingClientRect();
+
+            const maxX = Math.max(0, rect.width  - btnRect.width  - 24);
+            const maxY = Math.max(0, rect.height - btnRect.height - 24);
+
+            // Позиция «ДА» относительно контейнера
+            const yesLeft   = yesRect.left - rect.left;
+            const yesTop    = yesRect.top  - rect.top;
+            const yesRight  = yesLeft + yesRect.width;
+            const yesBottom = yesTop  + yesRect.height;
+
+            let x = 0, y = 0, tries = 0;
+            do {
+                x = Math.random() * maxX;
+                y = Math.random() * maxY;
+                tries++;
+                const overlapsYes =
+                    x < yesRight  + 10 &&
+                    x + btnRect.width  > yesLeft - 10 &&
+                    y < yesBottom + 10 &&
+                    y + btnRect.height > yesTop  - 10;
+                if (!overlapsYes) break;
+            } while (tries < 40);
+
             btnNo.style.left = x + 'px';
-            btnNo.style.top = y + 'px';
+            btnNo.style.top  = y + 'px';
             btnNo.style.transform = `scale(${0.9 + Math.random() * 0.2})`;
             btnNo.style.backgroundColor = `hsl(${Math.random() * 30 + 340}, 40%, ${70 + Math.random() * 20}%)`;
         }
@@ -383,11 +415,15 @@
             noClickCount++;
             noCounter.textContent = `❤️ Нет? Попробуй ещё... (нажатий: ${noClickCount})`;
             moveNoButton();
-            setTimeout(() => { isNoEscaping = false; }, 150);
+            setTimeout(() => { isNoEscaping = false; }, 250);
         }
 
+        // Мышь — убегает при наведении
         btnNo.addEventListener('mouseover', handleNoAttempt);
-        btnNo.addEventListener('touchstart', function(e) { e.preventDefault(); handleNoAttempt(); }, { passive: false });
+
+        // Тач — не двигаем при касании, только по клику
+        btnNo.addEventListener('touchstart', function() {}, { passive: true });
+
         btnNo.addEventListener('click', function(e) {
             e.preventDefault();
             noClickCount++;
